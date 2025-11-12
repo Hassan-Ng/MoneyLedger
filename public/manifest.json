@@ -1,0 +1,15 @@
+{
+  "short_name": "Ledger",
+  "name": "Money Ledger",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#127475"
+}
