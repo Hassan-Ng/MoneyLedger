@@ -1,10 +1,11 @@
 import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App.jsx";
-import { LedgerProvider } from "./context/LedgerContext.jsx";
+import { createRoot } from "react-dom/client";
+import App from "./App";
+import { LedgerProvider } from "./context/LedgerContext";
 import "./index.css";
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+// 🧠 Root Render
+createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <LedgerProvider>
       <App />
@@ -12,7 +13,12 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   </React.StrictMode>
 );
 
-// Register service worker
+// ⚙️ Register service worker for PWA support
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/service-worker.js");
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/service-worker.js")
+      .then(() => console.log("✅ Service Worker registered"))
+      .catch((err) => console.log("❌ SW registration failed:", err));
+  });
 }
