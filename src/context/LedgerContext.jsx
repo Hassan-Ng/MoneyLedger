@@ -5,6 +5,29 @@ const LedgerContext = createContext();
 
 const ACCOUNTS_KEY = "ledger_accounts";
 const TRANSACTIONS_KEY = "ledger_transactions";
+const IMPORT_EXPORT_VERSION = 1;
+
+function isValidAccount(account) {
+  return (
+    account &&
+    typeof account === "object" &&
+    typeof account.id === "number" &&
+    typeof account.name === "string" &&
+    typeof account.type === "string" &&
+    typeof account.balance === "number"
+  );
+}
+
+function isValidTransaction(tx) {
+  return (
+    tx &&
+    typeof tx === "object" &&
+    typeof tx.id === "number" &&
+    typeof tx.accountId === "number" &&
+    typeof tx.type === "string" &&
+    typeof tx.amount === "number"
+  );
+}
 
 export function LedgerProvider({ children }) {
   const [accounts, setAccounts] = useState([]);
@@ -32,6 +55,34 @@ export function LedgerProvider({ children }) {
   }, []);
 
   const refresh = loadData;
+
+  const exportData = () => ({
+    version: IMPORT_EXPORT_VERSION,
+    exportedAt: formatISO(new Date()),
+    accounts,
+    transactions,
+  });
+
+  const importData = (payload) => {
+    if (!payload || typeof payload !== "object") {
+      throw new Error("Invalid import file.");
+    }
+
+    const importedAccounts = Array.isArray(payload.accounts) ? payload.accounts : null;
+    const importedTransactions = Array.isArray(payload.transactions) ? payload.transactions : null;
+    if (!importedAccounts || !importedTransactions) {
+      throw new Error("Import file must include accounts and transactions arrays.");
+    }
+
+    if (!importedAccounts.every(isValidAccount) || !importedTransactions.every(isValidTransaction)) {
+      throw new Error("Import file contains invalid account or transaction entries.");
+    }
+
+    setAccounts(importedAccounts);
+    setTransactions(importedTransactions);
+    saveAccounts(importedAccounts);
+    saveTransactions(importedTransactions);
+  };
 
   // Add a new account
   const addAccount = ({ name, type = "Wallet" }) => {
@@ -141,6 +192,8 @@ export function LedgerProvider({ children }) {
         addTransaction,
         removeTransaction,
         refresh,
+        exportData,
+        importData,
       }}
     >
       {children}
