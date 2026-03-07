@@ -45,14 +45,20 @@ export default function Dashboard(){
       </div>
 
       <div className="space-y-2">
-        {visibleAccounts.map((account) => (
-          <AccountCard
-            key={account.id}
-            account={account}
-            subtitle={formatLastTxLabel(lastTransactionByAccount[account.id]?.date)}
-            showStatusDot={false}
-          />
-        ))}
+        {visibleAccounts.length === 0 ? (
+          <div className="border rounded-2xl bg-white p-5 text-center text-sm text-slate-500">
+            No accounts yet
+          </div>
+        ) : (
+          visibleAccounts.map((account) => (
+            <AccountCard
+              key={account.id}
+              account={account}
+              subtitle={formatLastTxLabel(lastTransactionByAccount[account.id]?.date)}
+              showStatusDot={false}
+            />
+          ))
+        )}
       </div>
     </div>
   )

@@ -22,8 +22,17 @@ export default function TransactionList(){
   return (
     <div>
       <div className="flex gap-2 mb-3">
-        <input value={filter} onChange={(e)=>setFilter(e.target.value)} placeholder="Search person/category/note" className="border p-2 rounded-md flex-1" />
-        <select value={typeFilter} onChange={(e)=>setTypeFilter(e.target.value)} className="border p-2 rounded-md">
+        <input
+          value={filter}
+          onChange={(e)=>setFilter(e.target.value)}
+          placeholder="Search account/person/category/note"
+          className="border border-slate-200 bg-white p-2 rounded-lg flex-1 focus:outline-none focus:ring-2 focus:ring-teal-500"
+        />
+        <select
+          value={typeFilter}
+          onChange={(e)=>setTypeFilter(e.target.value)}
+          className="border border-slate-200 bg-white p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+        >
           <option value="all">All</option>
           <option value="income">Income</option>
           <option value="expense">Expense</option>
@@ -31,18 +40,58 @@ export default function TransactionList(){
         </select>
       </div>
 
-      <div className="space-y-3 max-h-[480px] overflow-auto">
-        {visible.map(tx => (
-          <div key={tx.id} className="card flex justify-between items-start">
-            <div>
-              <div className="font-semibold">{tx.type.toUpperCase()} • {mapAccount[tx.accountId] || '—'}</div>
-              <div className="text-xs text-slate-500">{new Date(tx.date).toLocaleString()} • {tx.source} • {tx.category}</div>
-              {tx.note && <div className="mt-1 text-sm">{tx.note}</div>}
-            </div>
-            <div className="text-right">
-              <div className={`font-bold ${tx.type === 'expense' ? 'text-red-600' : 'text-teal-700'}`}>Rs. {Number(tx.amount).toFixed(2)}</div>
-              <div className="mt-2 flex gap-2 justify-end">
-                <button onClick={()=>removeTransaction(tx.id)} className="text-xs px-2 py-1 border rounded-md">Delete</button>
+      <div className="space-y-2 max-h-[75vh] overflow-auto">
+        {visible.length === 0 ? (
+          <div className="border rounded-2xl bg-white p-5 text-center text-sm text-slate-500">
+            No transactions found.
+          </div>
+        ) : visible.map(tx => (
+          <div
+            key={tx.id}
+            className="rounded-2xl border border-transparent bg-white px-4 py-3 shadow-sm transition hover:border-slate-200"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${
+                      tx.type === 'expense'
+                        ? 'bg-rose-100 text-rose-700'
+                        : tx.type === 'transfer'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-emerald-100 text-emerald-700'
+                    }`}
+                  >
+                    {tx.type.toUpperCase()}
+                  </span>
+                  <span className="font-semibold text-slate-900 truncate">{mapAccount[tx.accountId] || '—'}</span>
+                </div>
+                <div className="text-xs text-slate-500 mt-1">
+                  {new Date(tx.date).toLocaleString()}
+                  {tx.source ? ` • ${tx.source}` : ''}
+                  {tx.category ? ` • ${tx.category}` : ''}
+                </div>
+                {tx.note && <div className="mt-1 text-sm text-slate-700 break-words">{tx.note}</div>}
+              </div>
+
+              <div className="text-right shrink-0">
+                <div
+                  className={`font-bold ${
+                    tx.type === 'expense'
+                      ? 'text-rose-600'
+                      : tx.type === 'transfer'
+                      ? 'text-amber-600'
+                      : 'text-emerald-600'
+                  }`}
+                >
+                  {tx.type === 'transfer' ? '' : tx.type === 'expense' ? '-' : '+'} Rs. {Number(tx.amount).toFixed(2)}
+                </div>
+                <button
+                  onClick={()=>removeTransaction(tx.id)}
+                  className="mt-2 text-xs px-2 py-1 border border-slate-300 rounded-md hover:bg-slate-50"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           </div>

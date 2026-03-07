@@ -42,8 +42,8 @@ export default function Summary() {
 
       <div className="space-y-2">
         {groupAccounts.length === 0 ? (
-          <div className="border p-4 rounded-lg text-center text-slate-500">
-            No group accounts yet. Create one to track total money across selected accounts.
+          <div className="border rounded-2xl bg-white p-5 text-center text-sm text-slate-500">
+            No group accounts yet
           </div>
         ) : (
           groupAccounts.map((account) => (

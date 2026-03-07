@@ -186,13 +186,15 @@ export function LedgerProvider({ children }) {
 
   // Update account balance
   const updateBalance = (accountId, change) => {
-    const updatedAccounts = accounts.map((acc) =>
-      acc.id === accountId && acc.transactionable !== false
-        ? { ...acc, balance: (acc.balance || 0) + change }
-        : acc
-    );
-    setAccounts(updatedAccounts);
-    saveAccounts(updatedAccounts);
+    setAccounts((prev) => {
+      const updatedAccounts = prev.map((acc) =>
+        acc.id === accountId && acc.transactionable !== false
+          ? { ...acc, balance: (acc.balance || 0) + change }
+          : acc
+      );
+      saveAccounts(updatedAccounts);
+      return updatedAccounts;
+    });
   };
 
   // Add a transaction
@@ -215,6 +217,9 @@ export function LedgerProvider({ children }) {
       const destinationAccount = accounts.find((acc) => acc.id === toAccountId);
       if (!destinationAccount || destinationAccount.transactionable === false) {
         throw new Error("Transfer destination account is not transactionable.");
+      }
+      if (toAccountId === accountId) {
+        throw new Error("Transfer destination must be different from source account.");
       }
     }
 
@@ -240,22 +245,6 @@ export function LedgerProvider({ children }) {
     else if (type === "transfer") {
       updateBalance(accountId, -tx.amount);
       if (toAccountId) updateBalance(toAccountId, tx.amount);
-
-      // mirrored transaction
-      if (toAccountId) {
-        const mirroredTx = {
-          ...tx,
-          id: Date.now() + 1,
-          accountId: toAccountId,
-          type: "income",
-          source: `Transfer from ${accountId}`,
-          category: "transfer",
-          meta: { mirrored: true, from: accountId },
-        };
-        const newTxs = [mirroredTx, ...updatedTransactions];
-        setTransactions(newTxs);
-        saveTransactions(newTxs);
-      }
     }
   };
 
@@ -267,6 +256,10 @@ export function LedgerProvider({ children }) {
     // Reverse balance changes
     if (tx.type === "income") updateBalance(tx.accountId, -tx.amount);
     if (tx.type === "expense") updateBalance(tx.accountId, tx.amount);
+    if (tx.type === "transfer") {
+      updateBalance(tx.accountId, tx.amount);
+      if (tx.meta?.toAccountId) updateBalance(tx.meta.toAccountId, -tx.amount);
+    }
 
     const updatedTransactions = transactions.filter((t) => t.id !== id);
     setTransactions(updatedTransactions);

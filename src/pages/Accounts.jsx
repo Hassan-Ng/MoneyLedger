@@ -49,8 +49,8 @@ export default function Accounts() {
 
       <div className="space-y-2">
         {transactionableAccounts.length === 0 ? (
-          <div className="border p-4 rounded-lg text-center text-slate-500">
-            No accounts yet. Add Easypaisa, JazzCash, etc.
+          <div className="border rounded-2xl bg-white p-5 text-center text-sm text-slate-500">
+            No accounts yet
           </div>
         ) : (
           transactionableAccounts.map((a) => (

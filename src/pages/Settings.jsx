@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import { Download, Upload, ChevronRight } from "lucide-react";
 import { useLedger } from "../context/LedgerContext";
 import { showError, showSuccess } from "../utils/toast";
 
@@ -64,29 +65,81 @@ export default function Settings() {
   };
 
   return (
-    <div className="space-y-4 p-4">
-      <h2 className="text-lg font-semibold">Settings</h2>
+    <div className="animate-in fade-in duration-500">
+      <header className="space-y-1 mb-2">
+        <h2 className="text-md font-bold tracking-wide text-slate-500 uppercase">Settings</h2>
+      </header>
 
-      <div className="mt-4 flex flex-wrap gap-3">
-        <button
-          onClick={handleExportData}
-          className="px-4 py-2 bg-slate-700 text-white rounded hover:bg-slate-800 transition"
-        >
-          Export Data
-        </button>
-        <button
-          onClick={handleImportClick}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-        >
-          Import Data
-        </button>
-        <button
-          onClick={handleClearData}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
-        >
-          Clear All Data
-        </button>
-      </div>
+      <main className="space-y-8">
+        {/* Data Management Section */}
+        <section className="space-y-4">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 px-1">
+            Data Management
+          </h3>
+          
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+            {/* Export Card */}
+            <button 
+              onClick={handleExportData}
+              className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors border-b border-slate-100"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center">
+                  <Download size={18} />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-slate-800">Export Backup</p>
+                  <p className="text-xs text-slate-500">Save your ledgers to a .json file</p>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-slate-300" />
+            </button>
+
+            {/* Import Card */}
+            <button 
+              onClick={handleImportClick}
+              className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
+                  <Upload size={18} />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-slate-800">Import Data</p>
+                  <p className="text-xs text-slate-500">Restore from a previous backup</p>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-slate-300" />
+            </button>
+          </div>
+        </section>
+
+        {/* Danger Zone */}
+        <section className="space-y-4">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-rose-500 px-1">
+            Danger Zone
+          </h3>
+          <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="font-semibold text-rose-900">Clear All Records</p>
+              <p className="text-xs text-rose-600/70">Wipe all accounts and history permanently.</p>
+            </div>
+            <button 
+              onClick={handleClearData}
+              className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-all shadow-sm active:scale-95"
+            >
+              Reset
+            </button>
+          </div>
+        </section>
+      </main>
+
+      {/* App Info Footer */}
+      <footer className="text-center pt-8">
+        <p className="text-xs text-slate-400">BizLedger v1.2.0</p>
+        <p className="text-[10px] text-slate-300 mt-1 uppercase tracking-widest">Powered by SparkPair</p>
+      </footer>
+
       <input
         ref={fileInputRef}
         type="file"
