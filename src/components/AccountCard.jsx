@@ -17,28 +17,28 @@ export default function AccountCard({ account, subtitle, onClick, showStatusDot 
 
   const content = (
     <div
-      className={`w-full rounded-2xl border border-transparent bg-white px-4 py-3 shadow-sm transition text-left ${
+      className={`w-full rounded-2xl border border-transparent bg-white p-2 pr-3 shadow-sm transition text-left ${
         isClickable ? "hover:border-slate-200" : ""
       }`}
     >
       <div className="relative flex items-center justify-between gap-3">
-        {showStatusDot && (
-          <span
-            className={`absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full ${
-              isActive ? "bg-emerald-500" : "bg-slate-400"
-            }`}
-            aria-label={isActive ? "Active" : "Inactive"}
-            title={isActive ? "Active" : "Inactive"}
-          />
-        )}
-
         <div className="flex items-center gap-3">
           <div
-            className={`flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-bold ${
+            className={`relative flex h-12 w-12 items-center justify-center rounded-xl text-sm font-bold ${
               isNegative ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"
             }`}
           >
             {initials(account.name)}
+
+            {showStatusDot && (
+              <span
+                className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full ${
+                  isActive ? "bg-emerald-500" : "bg-slate-400"
+                }`}
+                aria-label={isActive ? "Active" : "Inactive"}
+                title={isActive ? "Active" : "Inactive"}
+              />
+            )}
           </div>
           <div>
             <div className="text-[15px] font-semibold text-slate-900">{account.name}</div>
