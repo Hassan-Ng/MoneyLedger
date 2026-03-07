@@ -1,48 +1,73 @@
-import React, { useMemo } from "react";
+import React, { useState } from "react";
 import { useLedger } from "../context/LedgerContext";
+import CreateAccountModal from "../components/CreateAccountModal";
+import AccountCard from "../components/AccountCard";
+import AccountActionModal from "../components/AccountActionModal";
+import { Plus } from "lucide-react";
+import { showError, showSuccess } from "../utils/toast";
 
 export default function Summary() {
-  const { accounts, transactions } = useLedger();
+  const { accounts, transactions, setAccountActive, deleteAccount } = useLedger();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState(null);
+  const groupAccounts = accounts.filter((account) => account.transactionable === false);
+  const accountsWithTransactions = new Set(transactions.map((tx) => tx.accountId));
 
-  const totals = useMemo(() => {
-    const income = transactions
-      .filter((t) => t.type === "income")
-      .reduce((s, t) => s + Number(t.amount || 0), 0);
-    const expense = transactions
-      .filter((t) => t.type === "expense")
-      .reduce((s, t) => s + Number(t.amount || 0), 0);
-    const transfer = transactions
-      .filter((t) => t.category === "transfer" || t.type === "transfer")
-      .reduce((s, t) => s + Number(t.amount || 0), 0);
-    const accountTotal = accounts.reduce((s, a) => s + Number(a.balance || 0), 0);
-    return { income, expense, transfer, accountTotal };
-  }, [transactions, accounts]);
+  const handleDeleteAccount = (account) => {
+    try {
+      deleteAccount(account.id);
+      showSuccess("Group account deleted.");
+      setSelectedAccount(null);
+    } catch (error) {
+      showError(error?.message || "Could not delete group account.");
+    }
+  };
+
+  const handleToggleActive = (account) => {
+    setAccountActive(account.id, account.active === false);
+    setSelectedAccount(null);
+  };
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold">Summary</h2>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card">
-          <div className="text-xs text-slate-500">Total Balance</div>
-          <div className="text-xl font-bold text-teal-700">Rs. {totals.accountTotal.toFixed(2)}</div>
-        </div>
-
-        <div className="card">
-          <div className="text-xs text-slate-500">Total Income</div>
-          <div className="text-xl font-bold">Rs. {totals.income.toFixed(2)}</div>
-        </div>
-
-        <div className="card">
-          <div className="text-xs text-slate-500">Total Expense</div>
-          <div className="text-xl font-bold text-red-600">Rs. {totals.expense.toFixed(2)}</div>
-        </div>
-
-        <div className="card">
-          <div className="text-xs text-slate-500">Transfers</div>
-          <div className="text-xl font-bold">Rs. {totals.transfer.toFixed(2)}</div>
-        </div>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold tracking-wide text-slate-500 uppercase">Group Accounts</h2>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-1 bg-teal-600 text-white px-3 py-2 rounded-lg hover:bg-teal-700 transition text-sm"
+        >
+          <Plus size={16} /> Add Group
+        </button>
       </div>
+
+      <div className="space-y-2">
+        {groupAccounts.length === 0 ? (
+          <div className="border p-4 rounded-lg text-center text-slate-500">
+            No group accounts yet. Create one to track total money across selected accounts.
+          </div>
+        ) : (
+          groupAccounts.map((account) => (
+            <AccountCard
+              key={account.id}
+              account={account}
+              subtitle={`Created: ${new Date(account.createdAt).toLocaleString()}`}
+              onClick={() => setSelectedAccount(account)}
+              showStatusDot={false}
+            />
+          ))
+        )}
+      </div>
+
+      {isModalOpen && <CreateAccountModal mode="summary" onClose={() => setIsModalOpen(false)} />}
+
+      <AccountActionModal
+        account={selectedAccount}
+        canDelete={selectedAccount ? !accountsWithTransactions.has(selectedAccount.id) : false}
+        onClose={() => setSelectedAccount(null)}
+        onToggleActive={handleToggleActive}
+        onDelete={handleDeleteAccount}
+        showToggleActive={false}
+      />
     </div>
   );
 }

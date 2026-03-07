@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SparkPair · BizLedger</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Sophisticated Color Palette */
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --primary: #0f766e; /* Deep Teal */
+            --primary-light: #ccfbf1;
+            
+            --text-main: #0f172a; /* Slate 900 */
+            --text-muted: #64748b; /* Slate 500 */
+            
+            /* Action Colors (Balanced desaturation) */
+            --income: #059669; /* Emerald 600 */
+            --income-bg: #ecfdf5;
+            --expense: #e11d48; /* Rose 600 */
+            --expense-bg: #fff1f2;
+            
+            --border: #e2e8f0;
+            --shadow: rgba(15, 23, 42, 0.08);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            line-height: 1.5;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            min-height: 100vh;
+            background: var(--bg);
+            position: relative;
+            padding-bottom: 100px;
+        }
+
+        /* Top Bar */
+        header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: -0.5px;
+        }
+
+        .logo span { color: var(--primary); }
+
+        .status-pill {
+            font-size: 0.65rem;
+            font-weight: 700;
+            background: var(--border);
+            color: var(--text-muted);
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+
+        /* Summary Card */
+        .summary-card {
+            background: var(--primary);
+            margin: 0 20px 24px;
+            padding: 28px;
+            border-radius: 28px;
+            color: white;
+            box-shadow: 0 20px 25px -5px rgba(15, 118, 110, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Abstract background shape for the card */
+        .summary-card::after {
+            content: "";
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            width: 100px;
+            height: 100px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        .summary-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            opacity: 0.85;
+            margin-bottom: 4px;
+        }
+
+        .summary-amount {
+            font-size: 2.25rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        /* Transaction List */
+        .list-header {
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .list-header h2 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text-muted);
+        }
+
+        .ledger-item {
+            background: var(--surface);
+            margin: 0 16px 8px;
+            padding: 14px 16px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px var(--shadow);
+            border: 1px solid transparent;
+        }
+
+        .ledger-item:hover { border-color: var(--border); }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        /* Dynamic Avatar Colors based on balance type */
+        .avatar.pos { background: var(--income-bg); color: var(--income); }
+        .avatar.neg { background: var(--expense-bg); color: var(--expense); }
+
+        .details { display: flex; flex-direction: column; }
+        .details .name { font-weight: 600; font-size: 0.95rem; }
+        .details .date { font-size: 0.75rem; color: var(--text-muted); }
+
+        .amount { font-weight: 700; font-size: 1rem; }
+        .amount.pos { color: var(--income); }
+        .amount.neg { color: var(--expense); }
+
+        /* Floating Action Button */
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 56px;
+            height: 56px;
+            background: var(--primary);
+            color: white;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 10px 15px -3px rgba(15, 118, 110, 0.4);
+            cursor: pointer;
+        }
+
+        /* Bottom Tab Bar */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            max-width: 480px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-decoration: none;
+            gap: 4px;
+        }
+
+        .tab-item.active { color: var(--primary); }
+        .icon { font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <div class="logo">Biz<span>Ledger</span></div>
+        <div class="status-pill">Offline Mode</div>
+    </header>
+
+    <div class="summary-card">
+        <div class="summary-label">Available Balance</div>
+        <div class="summary-amount">Rs. 21,984.71</div>
+    </div>
+
+    <div class="list-header">
+        <h2>Active Accounts</h2>
+        <span style="font-size: 0.75rem; color: var(--primary); font-weight: 600;">View All</span>
+    </div>
+
+    <div class="ledger-item">
+        <div class="user-info">
+            <div class="avatar pos">HA</div>
+            <div class="details">
+                <span class="name">Hassan</span>
+                <span class="date">Today • 3:09 PM</span>
+            </div>
+        </div>
+        <div class="amount pos">+ 4,878.00</div>
+    </div>
+
+    <div class="ledger-item">
+        <div class="user-info">
+            <div class="avatar pos">SP</div>
+            <div class="details">
+                <span class="name">SparkPair</span>
+                <span class="date">Dec 29, 2025</span>
+            </div>
+        </div>
+        <div class="amount pos">+ 69,411.71</div>
+    </div>
+
+    <div class="ledger-item">
+        <div class="user-info">
+            <div class="avatar neg">PA</div>
+            <div class="details">
+                <span class="name">Papa</span>
+                <span class="date">Feb 4, 2026</span>
+            </div>
+        </div>
+        <div class="amount neg">- 50,000.00</div>
+    </div>
+
+    <div class="ledger-item">
+        <div class="user-info">
+            <div class="avatar neg">BO</div>
+            <div class="details">
+                <span class="name">Board Office</span>
+                <span class="date">Nov 27, 2025</span>
+            </div>
+        </div>
+        <div class="amount neg">- 5,500.00</div>
+    </div>
+
+    <div class="fab">+</div>
+
+</div>
+
+</body>
+</html>

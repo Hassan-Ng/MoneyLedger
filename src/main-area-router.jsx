@@ -36,14 +36,14 @@ export default function MainAreaRouter() {
     { id: "dashboard", icon: Home, label: "Dashboard" },
     { id: "accounts", icon: Wallet, label: "Accounts" },
     { id: "transactions", icon: List, label: "Transactions" },
-    { id: "summary", icon: BarChart2, label: "Summary" },
+    { id: "summary", icon: BarChart2, label: "Groups" },
     { id: "settings", icon: SettingsIcon, label: "Settings" },
   ];
 
   return (
     <div className="flex flex-col min-h-[80vh]">
       {/* Page Content */}
-      <div className="flex-1 pb-20">{renderPage()}</div>
+      <div className="flex-1">{renderPage()}</div>
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-sm flex justify-around py-2 z-50">

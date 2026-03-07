@@ -1,6 +1,6 @@
 {
-  "short_name": "Ledger",
-  "name": "Money Ledger",
+  "short_name": "BizLedger",
+  "name": "BizLedger",
   "icons": [
     {
       "src": "/vite.svg",

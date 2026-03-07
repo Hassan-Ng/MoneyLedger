@@ -7,7 +7,7 @@ export default function App() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <header className="mb-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-teal-700">SparkPair · Money Ledger</h1>
+          <h1 className="text-2xl font-bold text-teal-700">SparkPair · BizLedger</h1>
           <span className="text-xs text-slate-500">Offline PWA</span>
         </header>
 

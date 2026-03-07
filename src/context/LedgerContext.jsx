@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { formatISO } from "date-fns";
 
 const LedgerContext = createContext();
@@ -14,7 +14,14 @@ function isValidAccount(account) {
     typeof account.id === "number" &&
     typeof account.name === "string" &&
     typeof account.type === "string" &&
-    typeof account.balance === "number"
+    typeof account.balance === "number" &&
+    (account.active === undefined || typeof account.active === "boolean") &&
+    (account.transactionable === undefined || typeof account.transactionable === "boolean") &&
+    (account.includeOtherNegativeAccounts === undefined ||
+      typeof account.includeOtherNegativeAccounts === "boolean") &&
+    (account.sourceAccountIds === undefined ||
+      (Array.isArray(account.sourceAccountIds) &&
+        account.sourceAccountIds.every((id) => typeof id === "number")))
   );
 }
 
@@ -29,13 +36,58 @@ function isValidTransaction(tx) {
   );
 }
 
+function normalizeAccount(account) {
+  return {
+    ...account,
+    active: account.active !== false,
+    transactionable: account.transactionable !== false,
+    includeOtherNegativeAccounts: account.includeOtherNegativeAccounts === true,
+    sourceAccountIds: Array.isArray(account.sourceAccountIds) ? account.sourceAccountIds : [],
+    balance: Number(account.balance || 0),
+  };
+}
+
+function computeAccountBalances(accounts) {
+  const byId = new Map(accounts.map((account) => [account.id, account]));
+
+  const resolveBalance = (accountId, seen = new Set()) => {
+    const account = byId.get(accountId);
+    if (!account) return 0;
+    if (account.transactionable !== false) return Number(account.balance || 0);
+    if (seen.has(accountId)) return 0;
+
+    const nextSeen = new Set(seen);
+    nextSeen.add(accountId);
+    let total = account.sourceAccountIds.reduce((sum, sourceId) => sum + resolveBalance(sourceId, nextSeen), 0);
+    if (account.includeOtherNegativeAccounts) {
+      const selected = new Set(account.sourceAccountIds);
+      const extraNegative = accounts
+        .filter(
+          (candidate) =>
+            candidate.id !== account.id &&
+            candidate.transactionable !== false &&
+            !selected.has(candidate.id) &&
+            Number(candidate.balance || 0) < 0
+        )
+        .reduce((sum, candidate) => sum + Number(candidate.balance || 0), 0);
+      total += extraNegative;
+    }
+    return total;
+  };
+
+  return accounts.map((account) => {
+    if (account.transactionable !== false) return account;
+    return { ...account, balance: resolveBalance(account.id) };
+  });
+}
+
 export function LedgerProvider({ children }) {
   const [accounts, setAccounts] = useState([]);
   const [transactions, setTransactions] = useState([]);
 
   // Load data from localStorage
   const loadData = () => {
-    const accs = JSON.parse(localStorage.getItem(ACCOUNTS_KEY)) || [];
+    const accs = (JSON.parse(localStorage.getItem(ACCOUNTS_KEY)) || []).map(normalizeAccount);
     const txs = JSON.parse(localStorage.getItem(TRANSACTIONS_KEY)) || [];
     setAccounts(accs);
     setTransactions(txs);
@@ -55,11 +107,12 @@ export function LedgerProvider({ children }) {
   }, []);
 
   const refresh = loadData;
+  const computedAccounts = useMemo(() => computeAccountBalances(accounts), [accounts]);
 
   const exportData = () => ({
     version: IMPORT_EXPORT_VERSION,
     exportedAt: formatISO(new Date()),
-    accounts,
+    accounts: computedAccounts,
     transactions,
   });
 
@@ -68,7 +121,9 @@ export function LedgerProvider({ children }) {
       throw new Error("Invalid import file.");
     }
 
-    const importedAccounts = Array.isArray(payload.accounts) ? payload.accounts : null;
+    const importedAccounts = Array.isArray(payload.accounts)
+      ? payload.accounts.map(normalizeAccount)
+      : null;
     const importedTransactions = Array.isArray(payload.transactions) ? payload.transactions : null;
     if (!importedAccounts || !importedTransactions) {
       throw new Error("Import file must include accounts and transactions arrays.");
@@ -85,12 +140,24 @@ export function LedgerProvider({ children }) {
   };
 
   // Add a new account
-  const addAccount = ({ name, type = "Wallet" }) => {
+  const addAccount = ({
+    name,
+    type = "Wallet",
+    balance = 0,
+    transactionable = true,
+    sourceAccountIds = [],
+    includeOtherNegativeAccounts = false,
+  }) => {
+    const isTransactionable = transactionable !== false;
     const newAccount = {
       id: Date.now(),
       name,
       type,
-      balance: 0,
+      balance: isTransactionable ? Number(balance || 0) : 0,
+      active: true,
+      transactionable: isTransactionable,
+      includeOtherNegativeAccounts: isTransactionable ? false : includeOtherNegativeAccounts === true,
+      sourceAccountIds: isTransactionable ? [] : sourceAccountIds,
       createdAt: new Date(),
     };
     const updatedAccounts = [...accounts, newAccount];
@@ -98,10 +165,31 @@ export function LedgerProvider({ children }) {
     saveAccounts(updatedAccounts);
   };
 
+  const setAccountActive = (accountId, isActive) => {
+    const updatedAccounts = accounts.map((acc) =>
+      acc.id === accountId ? { ...acc, active: Boolean(isActive) } : acc
+    );
+    setAccounts(updatedAccounts);
+    saveAccounts(updatedAccounts);
+  };
+
+  const deleteAccount = (accountId) => {
+    const hasTransactions = transactions.some((tx) => tx.accountId === accountId);
+    if (hasTransactions) {
+      throw new Error("Only accounts with no transactions can be deleted.");
+    }
+
+    const updatedAccounts = accounts.filter((acc) => acc.id !== accountId);
+    setAccounts(updatedAccounts);
+    saveAccounts(updatedAccounts);
+  };
+
   // Update account balance
   const updateBalance = (accountId, change) => {
     const updatedAccounts = accounts.map((acc) =>
-      acc.id === accountId ? { ...acc, balance: (acc.balance || 0) + change } : acc
+      acc.id === accountId && acc.transactionable !== false
+        ? { ...acc, balance: (acc.balance || 0) + change }
+        : acc
     );
     setAccounts(updatedAccounts);
     saveAccounts(updatedAccounts);
@@ -118,6 +206,18 @@ export function LedgerProvider({ children }) {
     note,
     toAccountId,
   }) => {
+    const sourceAccount = accounts.find((acc) => acc.id === accountId);
+    if (!sourceAccount || sourceAccount.transactionable === false) {
+      throw new Error("Selected account cannot be used for transactions.");
+    }
+
+    if (type === "transfer") {
+      const destinationAccount = accounts.find((acc) => acc.id === toAccountId);
+      if (!destinationAccount || destinationAccount.transactionable === false) {
+        throw new Error("Transfer destination account is not transactionable.");
+      }
+    }
+
     const tx = {
       id: Date.now(),
       accountId,
@@ -183,9 +283,11 @@ export function LedgerProvider({ children }) {
   return (
     <LedgerContext.Provider
       value={{
-        accounts,
+        accounts: computedAccounts,
         transactions,
         addAccount,
+        setAccountActive,
+        deleteAccount,
         deposit,
         withdraw,
         transfer,

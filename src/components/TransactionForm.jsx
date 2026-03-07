@@ -12,14 +12,32 @@ export default function TransactionForm({ accounts }){
   const [note, setNote] = useState('')
 
   useEffect(()=>{
-    if (accounts && accounts.length) setAccountId(accounts[0].id)
+    if (accounts && accounts.length) {
+      setAccountId(String(accounts[0].id))
+      if (type === 'transfer') {
+        const fallbackTo = accounts.find((a) => String(a.id) !== String(accounts[0].id))
+        setToAccountId(fallbackTo ? String(fallbackTo.id) : '')
+      }
+    } else {
+      setAccountId('')
+      setToAccountId('')
+    }
   },[accounts])
 
   const submit = async (e) =>{
     e.preventDefault()
     if (!accountId || !amount) return
+    if (type === 'transfer' && (!toAccountId || String(toAccountId) === String(accountId))) return
     await addTransaction({ accountId: Number(accountId), type, amount: Number(amount), source, category, note, toAccountId: type === 'transfer' ? Number(toAccountId) : undefined })
     setAmount(''); setNote(''); setSource(''); setCategory('')
+  }
+
+  if (!accounts.length) {
+    return (
+      <div className="card mb-4 text-sm text-slate-600">
+        No active transactionable accounts available. Activate or create one in Accounts to add transactions.
+      </div>
+    )
   }
 
   return (
