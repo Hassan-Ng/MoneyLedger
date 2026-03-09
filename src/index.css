@@ -11,3 +11,57 @@ body{
 
 /* small helper */
 .card { @apply bg-white rounded-2xl shadow p-4 }
+
+/* Modal motion */
+@keyframes modalOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalOverlayOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes modalPanelIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes modalPanelOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(14px) scale(0.96); }
+}
+
+.modal-overlay-enter { animation: modalOverlayIn 180ms ease-out both; }
+.modal-overlay-exit { animation: modalOverlayOut 160ms ease-in both; }
+.modal-panel-enter { animation: modalPanelIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.modal-panel-exit { animation: modalPanelOut 180ms ease-in both; }
+
+/* Toast motion */
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-10px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-8px) scale(0.97); }
+}
+
+.toast-in { animation: toastIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.toast-out { animation: toastOut 180ms ease-in both; }
+
+/* Page swipe/nav motion */
+@keyframes pageInFromRight {
+  from { opacity: 0.35; transform: translateX(32px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pageInFromLeft {
+  from { opacity: 0.35; transform: translateX(-32px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.page-enter-from-right { animation: pageInFromRight 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.page-enter-from-left { animation: pageInFromLeft 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }

@@ -13,11 +13,6 @@ export default function App() {
 
         {/* Main App Area (handles all pages + bottom nav) */}
         <MainAreaRouter />
-
-        {/* Footer Tip */}
-        <footer className="mt-6 text-xs text-slate-500 text-center">
-          Tip: mark transactions as <b>company</b> or <b>personal</b> in the category/note for reconciliation.
-        </footer>
       </div>
     </div>
   );

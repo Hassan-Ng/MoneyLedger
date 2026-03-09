@@ -1,11 +1,14 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { Download, Upload, ChevronRight } from "lucide-react";
 import { useLedger } from "../context/LedgerContext";
 import { showError, showSuccess } from "../utils/toast";
+import ConfirmModal from "../components/ConfirmModal";
 
 export default function Settings() {
   const { exportData, importData } = useLedger();
   const fileInputRef = useRef(null);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [pendingImportFile, setPendingImportFile] = useState(null);
 
   const handleExportData = () => {
     try {
@@ -32,36 +35,44 @@ export default function Settings() {
   const handleImportData = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    const confirmImport = window.confirm(
-      "Importing will replace all current accounts and transactions. Continue?"
-    );
-    if (!confirmImport) {
-      event.target.value = "";
-      return;
-    }
-
-    try {
-      const json = await file.text();
-      const parsed = JSON.parse(json);
-      importData(parsed);
-      showSuccess("Data imported successfully.");
-    } catch (error) {
-      showError(error?.message || "Import failed.");
-    } finally {
-      event.target.value = "";
-    }
+    setPendingImportFile(file);
+    setConfirmAction("import");
   };
 
   const handleClearData = () => {
-    const confirmClear = window.confirm(
-      "Are you sure you want to clear all data? This action cannot be undone."
-    );
-    if (confirmClear) {
+    setConfirmAction("clear");
+  };
+
+  const runConfirmedAction = async () => {
+    if (confirmAction === "import" && pendingImportFile) {
+      try {
+        const json = await pendingImportFile.text();
+        const parsed = JSON.parse(json);
+        importData(parsed);
+        showSuccess("Data imported successfully.");
+      } catch (error) {
+        showError(error?.message || "Import failed.");
+      } finally {
+        setConfirmAction(null);
+        setPendingImportFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    }
+
+    if (confirmAction === "clear") {
+      setConfirmAction(null);
       localStorage.clear();
       showSuccess("All app data has been cleared.");
       window.location.reload();
     }
+  };
+
+  const handleCancelConfirm = () => {
+    if (confirmAction === "import") {
+      setPendingImportFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+    setConfirmAction(null);
   };
 
   return (
@@ -146,6 +157,28 @@ export default function Settings() {
         accept="application/json,.json"
         className="hidden"
         onChange={handleImportData}
+      />
+
+      <ConfirmModal
+        open={confirmAction === "import"}
+        title="Import Backup?"
+        message="Importing will replace all current accounts and transactions."
+        confirmLabel="Import"
+        cancelLabel="Cancel"
+        confirmTone="primary"
+        onConfirm={runConfirmedAction}
+        onCancel={handleCancelConfirm}
+      />
+
+      <ConfirmModal
+        open={confirmAction === "clear"}
+        title="Clear All Data?"
+        message="This action cannot be undone."
+        confirmLabel="Clear Data"
+        cancelLabel="Cancel"
+        confirmTone="danger"
+        onConfirm={runConfirmedAction}
+        onCancel={handleCancelConfirm}
       />
     </div>
   );

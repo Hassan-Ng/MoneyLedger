@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useLedger } from "../context/LedgerContext";
 
 export default function CreateAccountModal({ onClose, mode = "all" }) {
+  const [isClosing, setIsClosing] = useState(false);
   const { addAccount, accounts } = useLedger();
   const sourceCandidates = accounts.filter((account) => account.transactionable !== false);
   const hasGroupUsingNegativeAdjustment = accounts.some(
@@ -37,7 +38,7 @@ export default function CreateAccountModal({ onClose, mode = "all" }) {
       sourceAccountIds: [],
       includeOtherNegativeAccounts: false,
     });
-    onClose();
+    requestClose();
   };
 
   const toggleSourceAccount = (accountId) => {
@@ -49,9 +50,27 @@ export default function CreateAccountModal({ onClose, mode = "all" }) {
     }));
   };
 
+  const requestClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 180);
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]">
-      <div className="bg-white rounded-xl shadow-lg w-11/12 max-w-md p-6 relative">
+    <div
+      className={`fixed inset-0 bg-black/40 flex items-center justify-center z-[100] ${
+        isClosing ? "modal-overlay-exit" : "modal-overlay-enter"
+      }`}
+      onClick={requestClose}
+    >
+      <div
+        className={`bg-white rounded-xl shadow-lg w-11/12 max-w-md p-6 relative ${
+          isClosing ? "modal-panel-exit" : "modal-panel-enter"
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-lg font-semibold mb-4 text-teal-700">Add New Account</h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -148,7 +167,7 @@ export default function CreateAccountModal({ onClose, mode = "all" }) {
           <div className="flex justify-end gap-2 mt-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               className="px-4 py-2 rounded-md border border-slate-300 hover:bg-slate-100"
             >
               Cancel

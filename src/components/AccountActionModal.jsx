@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 export default function AccountActionModal({
   account,
@@ -9,13 +9,33 @@ export default function AccountActionModal({
   showToggleActive = true,
   onMakeTransaction,
 }) {
+  const [isClosing, setIsClosing] = useState(false);
   if (!account) return null;
 
   const isActive = account.active !== false;
 
+  const requestClose = (afterClose) => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      if (typeof afterClose === "function") afterClose();
+      else onClose();
+    }, 180);
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]">
-      <div className="bg-white rounded-xl shadow-lg w-11/12 max-w-sm p-5">
+    <div
+      className={`fixed inset-0 bg-black/40 flex items-center justify-center z-[100] ${
+        isClosing ? "modal-overlay-exit" : "modal-overlay-enter"
+      }`}
+      onClick={() => requestClose()}
+    >
+      <div
+        className={`bg-white rounded-xl shadow-lg w-11/12 max-w-sm p-5 ${
+          isClosing ? "modal-panel-exit" : "modal-panel-enter"
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-lg font-semibold text-slate-800">{account.name}</h3>
         <p className="text-xs text-slate-500 mt-1">
           Created: {new Date(account.createdAt).toLocaleString()}
@@ -25,7 +45,7 @@ export default function AccountActionModal({
           {onMakeTransaction && (
             <button
               type="button"
-              onClick={() => onMakeTransaction(account)}
+              onClick={() => requestClose(() => onMakeTransaction(account))}
               className="w-full px-3 py-2 rounded-md border border-teal-300 text-teal-700 hover:bg-teal-50"
             >
               Make Transaction
@@ -35,7 +55,7 @@ export default function AccountActionModal({
           {showToggleActive && (
             <button
               type="button"
-              onClick={() => onToggleActive(account)}
+              onClick={() => requestClose(() => onToggleActive(account))}
               className="w-full px-3 py-2 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50"
             >
               {isActive ? "Deactivate" : "Activate"}
@@ -45,7 +65,7 @@ export default function AccountActionModal({
           {canDelete && (
             <button
               type="button"
-              onClick={() => onDelete(account)}
+              onClick={() => requestClose(() => onDelete(account))}
               className="w-full px-3 py-2 rounded-md border border-red-400 text-red-700 hover:bg-red-50"
             >
               Delete
@@ -56,7 +76,7 @@ export default function AccountActionModal({
         <div className="mt-4 flex justify-end">
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => requestClose()}
             className="px-4 py-2 rounded-md border border-slate-300 hover:bg-slate-100"
           >
             Close

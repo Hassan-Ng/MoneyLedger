@@ -13,6 +13,7 @@ export default function AccountTransactionModal({
   onClose,
   onSave,
 }) {
+  const [isClosing, setIsClosing] = useState(false);
   const [step, setStep] = useState(1);
   const [type, setType] = useState("");
   const [toAccountId, setToAccountId] = useState(null);
@@ -36,6 +37,13 @@ export default function AccountTransactionModal({
   if (!account) return null;
 
   const goToAmountStep = () => setStep(3);
+  const requestClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 180);
+  };
 
   const handleSave = async () => {
     if (!type || !amount) return;
@@ -50,15 +58,25 @@ export default function AccountTransactionModal({
         toAccountId: type === "transfer" ? toAccountId : undefined,
       });
       showSuccess("Transaction saved.");
-      onClose();
+      requestClose();
     } catch (error) {
       showError(error?.message || "Could not save transaction.");
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[110]">
-      <div className="bg-white rounded-xl shadow-lg w-11/12 max-w-md p-5">
+    <div
+      className={`fixed inset-0 bg-black/40 flex items-center justify-center z-[110] ${
+        isClosing ? "modal-overlay-exit" : "modal-overlay-enter"
+      }`}
+      onClick={requestClose}
+    >
+      <div
+        className={`bg-white rounded-xl shadow-lg w-11/12 max-w-md p-5 ${
+          isClosing ? "modal-panel-exit" : "modal-panel-enter"
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-lg font-semibold text-slate-800">Make Transaction</h3>
         <p className="text-xs text-slate-500 mt-1">{account.name}</p>
 
@@ -143,7 +161,7 @@ export default function AccountTransactionModal({
           <button
             type="button"
             onClick={() => {
-              if (step === 1) onClose();
+              if (step === 1) requestClose();
               else if (step === 3 && type === "transfer") setStep(2);
               else setStep(1);
             }}
