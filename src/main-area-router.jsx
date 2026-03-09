@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Home,
   Wallet,
@@ -14,9 +14,10 @@ import Settings from "./pages/Settings";
 
 export default function MainAreaRouter() {
   const [activePage, setActivePage] = useState("dashboard");
-  const [pageDirection, setPageDirection] = useState("forward");
+  const [transition, setTransition] = useState(null);
   const touchStartRef = useRef({ x: 0, y: 0 });
   const touchEndRef = useRef({ x: 0, y: 0 });
+  const transitionTimerRef = useRef(null);
 
   const renderPage = (pageId) => {
     switch (pageId) {
@@ -43,14 +44,33 @@ export default function MainAreaRouter() {
     { id: "settings", icon: SettingsIcon, label: "Settings" },
   ];
 
+  useEffect(() => {
+    return () => {
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    };
+  }, []);
+
+  const renderScene = (pageId) => (
+    <div className="h-full flex flex-col">
+      <header className="mb-4 flex items-center justify-between px-4 md:px-8 pt-4">
+        <h1 className="text-2xl font-bold text-teal-700">SparkPair · BizLedger</h1>
+        <span className="text-xs text-slate-500">Offline PWA</span>
+      </header>
+      <div className="flex-1 px-4 md:px-8 pb-20">{renderPage(pageId)}</div>
+    </div>
+  );
+
   const navigateTo = (targetPageId) => {
-    if (targetPageId === activePage) return;
+    if (targetPageId === activePage || transition) return;
     const currentIndex = navItems.findIndex((item) => item.id === activePage);
     const targetIndex = navItems.findIndex((item) => item.id === targetPageId);
     if (targetIndex === -1 || currentIndex === -1) return;
-
-    setPageDirection(targetIndex > currentIndex ? "forward" : "backward");
-    setActivePage(targetPageId);
+    const direction = targetIndex > currentIndex ? "forward" : "backward";
+    setTransition({ from: activePage, to: targetPageId, direction });
+    transitionTimerRef.current = setTimeout(() => {
+      setActivePage(targetPageId);
+      setTransition(null);
+    }, 320);
   };
 
   const handleTouchStart = (e) => {
@@ -94,12 +114,28 @@ export default function MainAreaRouter() {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div
-          key={activePage}
-          className={pageDirection === "forward" ? "page-enter-from-right" : "page-enter-from-left"}
-        >
-          {renderPage(activePage)}
-        </div>
+        {!transition ? (
+          <div key={activePage} className="h-full">
+            {renderScene(activePage)}
+          </div>
+        ) : (
+          <div className="relative h-full">
+            <div
+              className={`absolute inset-0 ${
+                transition.direction === "forward" ? "scene-leave-left" : "scene-leave-right"
+              }`}
+            >
+              {renderScene(transition.from)}
+            </div>
+            <div
+              className={`absolute inset-0 ${
+                transition.direction === "forward" ? "scene-enter-right" : "scene-enter-left"
+              }`}
+            >
+              {renderScene(transition.to)}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom Navigation */}
@@ -109,13 +145,13 @@ export default function MainAreaRouter() {
             key={id}
             onClick={() => navigateTo(id)}
             className={`flex flex-col items-center justify-center text-xs ${
-              activePage === id ? "text-teal-600" : "text-slate-500"
+              (transition ? transition.to : activePage) === id ? "text-teal-600" : "text-slate-500"
             }`}
           >
             <Icon
               size={22}
               className={`mb-0.5 ${
-                activePage === id ? "text-teal-600" : "text-slate-400"
+                (transition ? transition.to : activePage) === id ? "text-teal-600" : "text-slate-400"
               }`}
             />
             <span>{label}</span>

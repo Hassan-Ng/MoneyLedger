@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { registerModalOpen, unregisterModalOpen } from "../utils/modalBodyClass";
 
 export default function ConfirmModal({
@@ -35,7 +36,7 @@ export default function ConfirmModal({
       ? "bg-rose-600 hover:bg-rose-700 text-white"
       : "bg-teal-600 hover:bg-teal-700 text-white";
 
-  return (
+  return createPortal(
     <div
       className={`fixed inset-0 bg-black/40 flex items-center justify-center z-[120] ${
         isClosing ? "modal-overlay-exit" : "modal-overlay-enter"
@@ -68,6 +69,7 @@ export default function ConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -52,16 +52,28 @@ body{
 .toast-in { animation: toastIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .toast-out { animation: toastOut 180ms ease-in both; }
 
-/* Page swipe/nav motion */
-@keyframes pageInFromRight {
-  from { opacity: 0.35; transform: translateX(32px); }
-  to { opacity: 1; transform: translateX(0); }
+/* Page swipe/nav motion (sticky scroll-like) */
+@keyframes sceneEnterFromRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
 
-@keyframes pageInFromLeft {
-  from { opacity: 0.35; transform: translateX(-32px); }
-  to { opacity: 1; transform: translateX(0); }
+@keyframes sceneLeaveToLeft {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
 }
 
-.page-enter-from-right { animation: pageInFromRight 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-.page-enter-from-left { animation: pageInFromLeft 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes sceneEnterFromLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes sceneLeaveToRight {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+.scene-enter-right { animation: sceneEnterFromRight 320ms cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+.scene-leave-left { animation: sceneLeaveToLeft 320ms cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+.scene-enter-left { animation: sceneEnterFromLeft 320ms cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+.scene-leave-right { animation: sceneLeaveToRight 320ms cubic-bezier(0.22, 0.61, 0.36, 1) both; }
