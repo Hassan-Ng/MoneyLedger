@@ -14,10 +14,14 @@ import Settings from "./pages/Settings";
 
 export default function MainAreaRouter() {
   const [activePage, setActivePage] = useState("dashboard");
-  const [transition, setTransition] = useState(null);
-  const touchStartRef = useRef({ x: 0, y: 0 });
-  const touchEndRef = useRef({ x: 0, y: 0 });
-  const transitionTimerRef = useRef(null);
+  const [dragToPage, setDragToPage] = useState(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isSettling, setIsSettling] = useState(false);
+  const [pageWidth, setPageWidth] = useState(0);
+  const contentRef = useRef(null);
+  const settleTimerRef = useRef(null);
+  const gestureRef = useRef({ startX: 0, startY: 0, mode: "idle" });
 
   const renderPage = (pageId) => {
     switch (pageId) {
@@ -45,8 +49,17 @@ export default function MainAreaRouter() {
   ];
 
   useEffect(() => {
+    const updateWidth = () => {
+      setPageWidth(contentRef.current?.offsetWidth || window.innerWidth || 0);
+    };
+    updateWidth();
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
+  }, []);
+
+  useEffect(() => {
     return () => {
-      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+      if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
     };
   }, []);
 
@@ -60,79 +73,146 @@ export default function MainAreaRouter() {
     </div>
   );
 
+  const getDirectionSign = (fromPageId, toPageId) => {
+    const fromIndex = navItems.findIndex((item) => item.id === fromPageId);
+    const toIndex = navItems.findIndex((item) => item.id === toPageId);
+    if (fromIndex === -1 || toIndex === -1) return 0;
+    return toIndex > fromIndex ? -1 : 1;
+  };
+
+  const settleSlide = (shouldNavigate) => {
+    if (!dragToPage) return;
+    const directionSign = getDirectionSign(activePage, dragToPage);
+    const width = pageWidth || window.innerWidth || 0;
+
+    setIsDragging(false);
+    setIsSettling(true);
+    setDragOffset(shouldNavigate ? directionSign * width : 0);
+
+    settleTimerRef.current = setTimeout(() => {
+      if (shouldNavigate) setActivePage(dragToPage);
+      setDragToPage(null);
+      setDragOffset(0);
+      setIsSettling(false);
+    }, 300);
+  };
+
   const navigateTo = (targetPageId) => {
-    if (targetPageId === activePage || transition) return;
+    if (targetPageId === activePage || isSettling) return;
     const currentIndex = navItems.findIndex((item) => item.id === activePage);
     const targetIndex = navItems.findIndex((item) => item.id === targetPageId);
     if (targetIndex === -1 || currentIndex === -1) return;
-    const direction = targetIndex > currentIndex ? "forward" : "backward";
-    setTransition({ from: activePage, to: targetPageId, direction });
-    transitionTimerRef.current = setTimeout(() => {
+
+    const width = pageWidth || window.innerWidth || 0;
+    const directionSign = targetIndex > currentIndex ? -1 : 1;
+
+    setDragToPage(targetPageId);
+    setDragOffset(0);
+    setIsDragging(false);
+    setIsSettling(true);
+    requestAnimationFrame(() => {
+      setDragOffset(directionSign * width);
+    });
+
+    settleTimerRef.current = setTimeout(() => {
       setActivePage(targetPageId);
-      setTransition(null);
-    }, 320);
+      setDragToPage(null);
+      setDragOffset(0);
+      setIsSettling(false);
+    }, 300);
   };
 
   const handleTouchStart = (e) => {
+    if (isSettling) return;
     const touch = e.changedTouches[0];
-    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
-    touchEndRef.current = { x: touch.clientX, y: touch.clientY };
+    gestureRef.current = { startX: touch.clientX, startY: touch.clientY, mode: "undecided" };
   };
 
   const handleTouchMove = (e) => {
+    if (isSettling) return;
     const touch = e.changedTouches[0];
-    touchEndRef.current = { x: touch.clientX, y: touch.clientY };
-  };
-
-  const handleTouchEnd = () => {
-    const deltaX = touchEndRef.current.x - touchStartRef.current.x;
-    const deltaY = touchEndRef.current.y - touchStartRef.current.y;
+    const deltaX = touch.clientX - gestureRef.current.startX;
+    const deltaY = touch.clientY - gestureRef.current.startY;
     const absX = Math.abs(deltaX);
     const absY = Math.abs(deltaY);
 
-    // Trigger only clear horizontal swipes, ignore mostly vertical gestures.
-    if (absX < 70 || absX <= absY * 1.2) return;
+    if (gestureRef.current.mode === "undecided" && (absX > 10 || absY > 10)) {
+      gestureRef.current.mode = absX > absY * 1.1 ? "horizontal" : "vertical";
+    }
+
+    if (gestureRef.current.mode !== "horizontal") return;
 
     const currentIndex = navItems.findIndex((item) => item.id === activePage);
     if (currentIndex === -1) return;
 
-    if (deltaX < 0 && currentIndex < navItems.length - 1) {
-      navigateTo(navItems[currentIndex + 1].id);
+    const nextPage = deltaX < 0 ? navItems[currentIndex + 1]?.id : navItems[currentIndex - 1]?.id;
+    if (!nextPage) {
+      setDragToPage(null);
+      setIsDragging(false);
+      setDragOffset(deltaX * 0.2);
       return;
     }
-    if (deltaX > 0 && currentIndex > 0) {
-      navigateTo(navItems[currentIndex - 1].id);
+
+    const width = pageWidth || window.innerWidth || 0;
+    const clamped = Math.max(-width, Math.min(width, deltaX));
+
+    setDragToPage(nextPage);
+    setIsDragging(true);
+    setDragOffset(clamped);
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging || !dragToPage) {
+      setDragOffset(0);
+      setIsDragging(false);
+      setDragToPage(null);
+      gestureRef.current.mode = "idle";
+      return;
     }
+
+    const width = pageWidth || window.innerWidth || 0;
+    const threshold = width * 0.22;
+    const shouldNavigate = Math.abs(dragOffset) > threshold;
+    settleSlide(shouldNavigate);
+    gestureRef.current.mode = "idle";
   };
 
   return (
     <div className="flex flex-col min-h-[80vh]">
       {/* Page Content */}
       <div
+        ref={contentRef}
         className="flex-1 pb-20 overflow-hidden"
+        style={{ touchAction: "pan-y" }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {!transition ? (
+        {!dragToPage ? (
           <div key={activePage} className="h-full">
             {renderScene(activePage)}
           </div>
         ) : (
           <div className="relative h-full">
             <div
-              className={`absolute inset-0 ${
-                transition.direction === "forward" ? "scene-leave-left" : "scene-leave-right"
-              }`}
+              className="absolute inset-0"
+              style={{
+                transform: `translateX(${dragOffset}px)`,
+                transition: isDragging ? "none" : "transform 300ms cubic-bezier(0.22, 0.61, 0.36, 1)",
+              }}
             >
-              {renderScene(transition.from)}
+              {renderScene(activePage)}
             </div>
             <div
-              className={`absolute inset-0 ${
-                transition.direction === "forward" ? "scene-enter-right" : "scene-enter-left"
-              }`}
+              className="absolute inset-0"
+              style={{
+                transform: `translateX(${
+                  dragOffset + (getDirectionSign(activePage, dragToPage) === -1 ? pageWidth : -pageWidth)
+                }px)`,
+                transition: isDragging ? "none" : "transform 300ms cubic-bezier(0.22, 0.61, 0.36, 1)",
+              }}
             >
-              {renderScene(transition.to)}
+              {renderScene(dragToPage)}
             </div>
           </div>
         )}
@@ -145,13 +225,13 @@ export default function MainAreaRouter() {
             key={id}
             onClick={() => navigateTo(id)}
             className={`flex flex-col items-center justify-center text-xs ${
-              (transition ? transition.to : activePage) === id ? "text-teal-600" : "text-slate-500"
+              (dragToPage ? dragToPage : activePage) === id ? "text-teal-600" : "text-slate-500"
             }`}
           >
             <Icon
               size={22}
               className={`mb-0.5 ${
-                (transition ? transition.to : activePage) === id ? "text-teal-600" : "text-slate-400"
+                (dragToPage ? dragToPage : activePage) === id ? "text-teal-600" : "text-slate-400"
               }`}
             />
             <span>{label}</span>
