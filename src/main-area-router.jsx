@@ -13,17 +13,27 @@ import Summary from "./pages/Summary";
 import Settings from "./pages/Settings";
 
 const SETTLE_MS = 300;
+const PAGE_LOAD_DELAY_MS = 120;
+
+const MemoDashboard = React.memo(Dashboard);
+const MemoAccounts = React.memo(Accounts);
+const MemoTransactions = React.memo(Transactions);
+const MemoSummary = React.memo(Summary);
+const MemoSettings = React.memo(Settings);
 
 export default function MainAreaRouter() {
   const [activePage, setActivePage] = useState("dashboard");
+  const [renderedPage, setRenderedPage] = useState("dashboard");
   const [dragToPage, setDragToPage] = useState(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isSettling, setIsSettling] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(false);
   const [pageWidth, setPageWidth] = useState(0);
 
   const contentRef = useRef(null);
   const settleTimerRef = useRef(null);
+  const pageLoadTimerRef = useRef(null);
   const pointerRef = useRef({
     id: null,
     startX: 0,
@@ -43,17 +53,17 @@ export default function MainAreaRouter() {
   const renderPage = (pageId) => {
     switch (pageId) {
       case "dashboard":
-        return <Dashboard />;
+        return <MemoDashboard />;
       case "accounts":
-        return <Accounts />;
+        return <MemoAccounts />;
       case "transactions":
-        return <Transactions />;
+        return <MemoTransactions />;
       case "summary":
-        return <Summary />;
+        return <MemoSummary />;
       case "settings":
-        return <Settings />;
+        return <MemoSettings />;
       default:
-        return <Dashboard />;
+        return <MemoDashboard />;
     }
   };
 
@@ -69,8 +79,30 @@ export default function MainAreaRouter() {
   useEffect(() => {
     return () => {
       if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+      if (pageLoadTimerRef.current) clearTimeout(pageLoadTimerRef.current);
     };
   }, []);
+
+  const commitPageNavigation = (nextPageId) => {
+    if (!nextPageId) return;
+    if (pageLoadTimerRef.current) clearTimeout(pageLoadTimerRef.current);
+
+    setActivePage(nextPageId);
+    setIsPageLoading(true);
+    pageLoadTimerRef.current = setTimeout(() => {
+      setRenderedPage(nextPageId);
+      setIsPageLoading(false);
+    }, PAGE_LOAD_DELAY_MS);
+  };
+
+  const renderLoadingState = () => (
+    <div className="space-y-3 animate-pulse">
+      <div className="h-5 w-36 rounded-md bg-slate-200" />
+      <div className="h-24 rounded-2xl bg-slate-200" />
+      <div className="h-20 rounded-2xl bg-slate-200" />
+      <div className="h-20 rounded-2xl bg-slate-200" />
+    </div>
+  );
 
   const renderScene = (pageId) => (
     <div className="min-h-full flex flex-col">
@@ -79,6 +111,16 @@ export default function MainAreaRouter() {
         <span className="text-xs text-slate-500">Offline PWA</span>
       </header>
       <div className="flex-1 px-4 md:px-8 pb-20">{renderPage(pageId)}</div>
+    </div>
+  );
+
+  const renderSceneSkeleton = () => (
+    <div className="min-h-full flex flex-col">
+      <header className="mb-4 flex items-center justify-between px-4 md:px-8 pt-4">
+        <h1 className="text-2xl font-bold text-teal-700">SparkPair · BizLedger</h1>
+        <span className="text-xs text-slate-500">Offline PWA</span>
+      </header>
+      <div className="flex-1 px-4 md:px-8 pb-20">{renderLoadingState()}</div>
     </div>
   );
 
@@ -119,7 +161,7 @@ export default function MainAreaRouter() {
     setDragOffset(shouldNavigate ? directionSign * width : 0);
 
     settleTimerRef.current = setTimeout(() => {
-      if (shouldNavigate) setActivePage(dragToPage);
+      if (shouldNavigate) commitPageNavigation(dragToPage);
       resetDrag();
       setIsSettling(false);
     }, SETTLE_MS);
@@ -145,7 +187,7 @@ export default function MainAreaRouter() {
     });
 
     settleTimerRef.current = setTimeout(() => {
-      setActivePage(targetPageId);
+      commitPageNavigation(targetPageId);
       resetDrag();
       setIsSettling(false);
     }, SETTLE_MS);
@@ -176,9 +218,10 @@ export default function MainAreaRouter() {
     const absX = Math.abs(deltaX);
     const absY = Math.abs(deltaY);
 
-    if (state.mode === "undecided" && (absX > 8 || absY > 8)) {
-      // Slight bias to horizontal to work better over dense scrollable content.
-      state.mode = absX > absY * 0.75 ? "horizontal" : "vertical";
+    if (state.mode === "undecided" && (absX > 10 || absY > 10)) {
+      // Keep undecided a bit longer on scrollable pages to avoid false vertical locks.
+      if (absX > absY + 6) state.mode = "horizontal";
+      else if (absY > absX + 10) state.mode = "vertical";
     }
 
     if (state.mode !== "horizontal") return;
@@ -256,7 +299,9 @@ export default function MainAreaRouter() {
       >
         {!dragToPage ? (
           <div key={activePage} className="min-h-full">
-            {renderScene(activePage)}
+            {isPageLoading || renderedPage !== activePage
+              ? renderSceneSkeleton()
+              : renderScene(renderedPage)}
           </div>
         ) : (
           <div className="relative min-h-full">
@@ -280,7 +325,7 @@ export default function MainAreaRouter() {
                   : `transform ${SETTLE_MS}ms cubic-bezier(0.22, 0.61, 0.36, 1)`,
               }}
             >
-              {renderScene(dragToPage)}
+              {renderSceneSkeleton()}
             </div>
           </div>
         )}

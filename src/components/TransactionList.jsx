@@ -40,7 +40,10 @@ export default function TransactionList(){
         </select>
       </div>
 
-      <div className="space-y-2 max-h-[75vh] overflow-auto">
+      <div
+        className="space-y-2 max-h-[75vh] overflow-auto"
+        style={{ touchAction: "pan-y", overscrollBehaviorY: "contain" }}
+      >
         {visible.length === 0 ? (
           <div className="border rounded-2xl bg-white p-5 text-center text-sm text-slate-500">
             No transactions found.
