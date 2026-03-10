@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { registerModalOpen, unregisterModalOpen } from "../utils/modalBodyClass";
 
@@ -6,6 +6,7 @@ export default function EditTransactionModal({ open, transaction, onSave, onClos
   const [isClosing, setIsClosing] = useState(false);
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
+  const openedAtRef = useRef(0);
 
   useEffect(() => {
     if (!open) return;
@@ -17,6 +18,7 @@ export default function EditTransactionModal({ open, transaction, onSave, onClos
     if (!open || !transaction) return;
     setAmount(String(transaction.amount ?? ""));
     setNote(transaction.note || "");
+    openedAtRef.current = Date.now();
   }, [open, transaction]);
 
   if (!open || !transaction) return null;
@@ -52,7 +54,10 @@ export default function EditTransactionModal({ open, transaction, onSave, onClos
       className={`fixed inset-0 bg-black/40 flex items-center justify-center z-[120] ${
         isClosing ? "modal-overlay-exit" : "modal-overlay-enter"
       }`}
-      onClick={() => requestClose()}
+      onClick={() => {
+        if (Date.now() - openedAtRef.current < 250) return;
+        requestClose();
+      }}
     >
       <div
         className={`bg-white rounded-xl shadow-lg w-11/12 max-w-sm p-5 ${
