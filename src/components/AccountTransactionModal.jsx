@@ -77,8 +77,25 @@ export default function AccountTransactionModal({
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-lg font-semibold text-slate-800">Make Transaction</h3>
-        <p className="text-xs text-slate-500 mt-1">{account.name}</p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-800">Make Transaction</h3>
+            <p className="text-xs text-slate-500 mt-1">{account.name}</p>
+          </div>
+          {step === 3 && type ? (
+            <span
+              className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${
+                type === "expense"
+                  ? "bg-rose-100 text-rose-700"
+                  : type === "transfer"
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-emerald-100 text-emerald-700"
+              }`}
+            >
+              {type.toUpperCase()}
+            </span>
+          ) : null}
+        </div>
 
         {step === 1 && (
           <div className="mt-4 space-y-2">
@@ -136,9 +153,8 @@ export default function AccountTransactionModal({
         {step === 3 && (
           <div className="mt-4 space-y-3">
             <div className="text-sm text-slate-600">
-              {type.toUpperCase()}
               {type === "transfer" && toAccountId
-                ? ` -> ${accounts.find((item) => item.id === toAccountId)?.name || ""}`
+                ? `To ${accounts.find((item) => item.id === toAccountId)?.name || ""}`
                 : ""}
             </div>
             <input
@@ -157,7 +173,7 @@ export default function AccountTransactionModal({
           </div>
         )}
 
-        <div className="mt-4 flex justify-between">
+        <div className="mt-4 flex justify-end gap-2">
           <button
             type="button"
             onClick={() => {

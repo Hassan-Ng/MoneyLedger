@@ -1,10 +1,13 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import { useLedger } from '../context/LedgerContext'
+import EditTransactionModal from './EditTransactionModal'
 
 export default function TransactionList(){
-  const { transactions, accounts, removeTransaction } = useLedger()
+  const { transactions, accounts, removeTransaction, updateTransaction } = useLedger()
   const [filter, setFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [editingTx, setEditingTx] = useState(null)
+  const lastTapRef = useRef(0)
 
   const mapAccount = useMemo(()=>{
     const m = {}
@@ -18,6 +21,14 @@ export default function TransactionList(){
     const q = filter.toLowerCase()
     return (tx.source || '').toLowerCase().includes(q) || (tx.category || '').toLowerCase().includes(q) || (tx.note || '').toLowerCase().includes(q) || (mapAccount[tx.accountId] || '').toLowerCase().includes(q)
   })
+
+  const handleDoubleTap = (tx) => {
+    const now = Date.now()
+    if (now - lastTapRef.current < 280) {
+      setEditingTx(tx)
+    }
+    lastTapRef.current = now
+  }
 
   return (
     <div>
@@ -52,6 +63,8 @@ export default function TransactionList(){
           <div
             key={tx.id}
             className="rounded-2xl border border-transparent bg-white px-4 py-3 shadow-sm transition hover:border-slate-200"
+            onDoubleClick={() => setEditingTx(tx)}
+            onTouchEnd={() => handleDoubleTap(tx)}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -100,6 +113,16 @@ export default function TransactionList(){
           </div>
         ))}
       </div>
+
+      <EditTransactionModal
+        open={Boolean(editingTx)}
+        transaction={editingTx}
+        onClose={() => setEditingTx(null)}
+        onSave={(payload) => {
+          updateTransaction(payload)
+          setEditingTx(null)
+        }}
+      />
     </div>
   )
 }

@@ -266,6 +266,36 @@ export function LedgerProvider({ children }) {
     saveTransactions(updatedTransactions);
   };
 
+  const updateTransaction = ({ id, amount, note }) => {
+    const tx = transactions.find((t) => t.id === id);
+    if (!tx) return;
+
+    const nextAmount = Number(amount);
+    if (!Number.isFinite(nextAmount) || nextAmount < 0) {
+      throw new Error("Amount must be a valid number.");
+    }
+
+    const delta = nextAmount - Number(tx.amount || 0);
+    const updatedTx = {
+      ...tx,
+      amount: nextAmount,
+      note: typeof note === "string" ? note : tx.note,
+    };
+
+    const updatedTransactions = transactions.map((t) => (t.id === id ? updatedTx : t));
+    setTransactions(updatedTransactions);
+    saveTransactions(updatedTransactions);
+
+    if (delta === 0) return;
+
+    if (tx.type === "income") updateBalance(tx.accountId, delta);
+    else if (tx.type === "expense") updateBalance(tx.accountId, -delta);
+    else if (tx.type === "transfer") {
+      updateBalance(tx.accountId, -delta);
+      if (tx.meta?.toAccountId) updateBalance(tx.meta.toAccountId, delta);
+    }
+  };
+
   const deposit = (accountId, amount, opts = {}) =>
     addTransaction({ accountId, type: "income", amount, ...opts });
   const withdraw = (accountId, amount, opts = {}) =>
@@ -285,6 +315,7 @@ export function LedgerProvider({ children }) {
         withdraw,
         transfer,
         addTransaction,
+        updateTransaction,
         removeTransaction,
         refresh,
         exportData,
