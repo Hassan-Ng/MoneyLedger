@@ -1,12 +1,14 @@
 import React, { useMemo, useRef, useState } from 'react'
 import { useLedger } from '../context/LedgerContext'
 import EditTransactionModal from './EditTransactionModal'
+import ConfirmModal from './ConfirmModal'
 
 export default function TransactionList(){
   const { transactions, accounts, removeTransaction, updateTransaction } = useLedger()
   const [filter, setFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [editingTx, setEditingTx] = useState(null)
+  const [confirmDeleteTx, setConfirmDeleteTx] = useState(null)
   const lastTapRef = useRef(0)
 
   const mapAccount = useMemo(()=>{
@@ -103,7 +105,7 @@ export default function TransactionList(){
                   {tx.type === 'transfer' ? '' : tx.type === 'expense' ? '-' : '+'} Rs. {Number(tx.amount).toFixed(2)}
                 </div>
                 <button
-                  onClick={()=>removeTransaction(tx.id)}
+                  onClick={()=>setConfirmDeleteTx(tx)}
                   className="mt-2 text-xs px-2 py-1 border border-slate-300 rounded-md hover:bg-slate-50"
                 >
                   Delete
@@ -122,6 +124,19 @@ export default function TransactionList(){
           updateTransaction(payload)
           setEditingTx(null)
         }}
+      />
+
+      <ConfirmModal
+        open={Boolean(confirmDeleteTx)}
+        title="Delete transaction?"
+        message="This action cannot be undone."
+        confirmLabel="Delete"
+        confirmTone="danger"
+        onConfirm={() => {
+          if (confirmDeleteTx) removeTransaction(confirmDeleteTx.id)
+          setConfirmDeleteTx(null)
+        }}
+        onCancel={() => setConfirmDeleteTx(null)}
       />
     </div>
   )
